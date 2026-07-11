@@ -133,14 +133,15 @@ class PIDConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        return PIDOptionsFlow(config_entry)
+        return PIDOptionsFlow()
 
 
 class PIDOptionsFlow(OptionsFlow):
-    """Allow editing gains and limits without re-adding the helper."""
+    """Allow editing gains and limits without re-adding the helper.
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        self.config_entry = config_entry
+    `self.config_entry` is provided by the framework — do not store it in
+    __init__ (deprecated since HA 2024.11).
+    """
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
