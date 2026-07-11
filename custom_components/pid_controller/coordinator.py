@@ -7,6 +7,7 @@ import time
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
@@ -26,6 +27,7 @@ from .const import (
     DEFAULT_SAMPLE_TIME,
     DEFAULT_SETPOINT,
     DOMAIN,
+    STORAGE_VERSION,
 )
 from .pid import PIDController
 
@@ -37,7 +39,7 @@ _UNAVAILABLE = (None, "unavailable", "unknown", "")
 class PIDCoordinator(DataUpdateCoordinator):
     """Periodically evaluate the PID and push the output to a number entity."""
 
-    def __init__(self, hass: HomeAssistant, options: dict) -> None:
+    def __init__(self, hass: HomeAssistant, entry_id: str, options: dict) -> None:
         self._options = options
         sample = options.get(CONF_SAMPLE_TIME, DEFAULT_SAMPLE_TIME)
         super().__init__(
@@ -57,6 +59,33 @@ class PIDCoordinator(DataUpdateCoordinator):
             output_max=float(options.get(CONF_OUTPUT_MAX, 5.0)),
             invert=bool(options.get(CONF_INVERT, False)),
         )
+        # Persist integral / last_pv / enabled across restarts (warm start).
+        self._store: Store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
+
+    async def async_load(self) -> None:
+        """Restore persisted controller state before the first refresh."""
+        data = await self._store.async_load()
+        if not data:
+            return
+        self.pid.state.integral = float(data.get("integral", 0.0))
+        last_pv = data.get("last_pv")
+        self.pid.state.last_pv = float(last_pv) if last_pv is not None else None
+        self.enabled = bool(data.get("enabled", True))
+        _LOGGER.debug(
+            "%s restored: integral=%.3f enabled=%s",
+            self.name, self.pid.state.integral, self.enabled,
+        )
+
+    def _persisted_data(self) -> dict:
+        return {
+            "integral": self.pid.state.integral,
+            "last_pv": self.pid.state.last_pv,
+            "enabled": self.enabled,
+        }
+
+    def _schedule_save(self) -> None:
+        # Debounced write; Store also flushes pending data on HA shutdown.
+        self._store.async_delay_save(self._persisted_data, 30)
 
     def _read_float(self, entity_id: str | None) -> float | None:
         if not entity_id:
@@ -94,6 +123,7 @@ class PIDCoordinator(DataUpdateCoordinator):
             return self._debug_dict(pv, setpoint, outdoor, written=False)
 
         output = self.pid.step(pv=pv, setpoint=setpoint, dt=dt, outdoor=outdoor)
+        self._schedule_save()  # persist integral / last_pv
 
         output_entity = self._options.get(CONF_OUTPUT_ENTITY)
         if output_entity:
@@ -130,4 +160,5 @@ class PIDCoordinator(DataUpdateCoordinator):
         if enabled == self.enabled:
             return
         self.enabled = enabled
+        self._schedule_save()
         await self.async_request_refresh()

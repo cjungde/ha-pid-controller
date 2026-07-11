@@ -32,6 +32,7 @@ outdoor_entity (opt.)   ──┘                                          Berei
 - **Clamping-Anti-Windup** – Integral wird bei Sättigung eingefroren und auf den Ausgangsbereich begrenzt
 - **Ke-Vorsteuerung** – optionale lineare Außentemperatur-Kompensation `Ke · (Sollwert − Außentemp)`
 - **`switch.enabled`** – externer Zustandsautomat kann den Regler pausieren; das Integral bleibt eingefroren, es wird nichts geschrieben
+- **Warmstart-Persistenz** – Integral, `last_pv` und Enable-Zustand werden im integrationseigenen `Store` gehalten und beim Neustart wiederhergestellt (kein Kaltstart, kein Verlust des eingeregelten Trims). Beim Entfernen des Config-Entries wird der Store automatisch gelöscht.
 
 ## Erzeugte Entitäten (je Config-Entry)
 

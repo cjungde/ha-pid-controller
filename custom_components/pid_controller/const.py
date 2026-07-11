@@ -32,4 +32,7 @@ DEFAULT_INVERT = False
 # Persisted runtime keys
 DATA_COORDINATOR = "coordinator"
 
+# Storage (persists integral / last_pv / enabled across restarts)
+STORAGE_VERSION = 1
+
 PLATFORMS = ["sensor", "switch"]

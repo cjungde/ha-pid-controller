@@ -14,7 +14,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Merge data + options; options take precedence (editable via UI).
     options = {**entry.data, **entry.options}
 
-    coordinator = PIDCoordinator(hass, options)
+    coordinator = PIDCoordinator(hass, entry.entry_id, options)
+    await coordinator.async_load()  # warm start: restore integral / enabled
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
@@ -32,6 +33,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete persisted state when the entry is removed (clean uninstall)."""
+    from homeassistant.helpers.storage import Store
+
+    from .const import STORAGE_VERSION
+
+    await Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}").async_remove()
 
 
 async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
