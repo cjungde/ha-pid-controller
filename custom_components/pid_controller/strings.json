@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PID Controller",
+        "description": "Configure a PID controller that writes a signed value to a target number entity.",
+        "data": {
+          "name": "Name",
+          "input_entity": "Input (process variable)",
+          "setpoint_entity": "Setpoint entity (optional)",
+          "setpoint_value": "Fixed setpoint (if no entity)",
+          "output_entity": "Output number entity",
+          "outdoor_entity": "Outdoor sensor (for Ke feed-forward, optional)",
+          "kp": "Kp (proportional)",
+          "ki": "Ki (integral)",
+          "kd": "Kd (derivative)",
+          "ke": "Ke (weather feed-forward)",
+          "output_min": "Output minimum (may be negative)",
+          "output_max": "Output maximum",
+          "sample_time_s": "Sample time (seconds)",
+          "invert": "Invert (cooling direction)"
+        }
+      }
+    },
+    "error": {
+      "min_max": "Output minimum must be smaller than maximum."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PID Controller — tuning",
+        "data": {
+          "input_entity": "Input (process variable)",
+          "setpoint_entity": "Setpoint entity (optional)",
+          "setpoint_value": "Fixed setpoint (if no entity)",
+          "output_entity": "Output number entity",
+          "outdoor_entity": "Outdoor sensor (for Ke feed-forward, optional)",
+          "kp": "Kp (proportional)",
+          "ki": "Ki (integral)",
+          "kd": "Kd (derivative)",
+          "ke": "Ke (weather feed-forward)",
+          "output_min": "Output minimum (may be negative)",
+          "output_max": "Output maximum",
+          "sample_time_s": "Sample time (seconds)",
+          "invert": "Invert (cooling direction)"
+        }
+      }
+    },
+    "error": {
+      "min_max": "Output minimum must be smaller than maximum."
+    }
+  }
+}
