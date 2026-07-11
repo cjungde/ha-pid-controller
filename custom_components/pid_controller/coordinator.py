@@ -121,6 +121,13 @@ class PIDCoordinator(DataUpdateCoordinator):
         }
 
     async def async_set_enabled(self, enabled: bool) -> None:
-        """Enable/disable the controller (used by external state machines)."""
+        """Enable/disable the controller (used by external state machines).
+
+        Idempotent: a call that does not change the state is a no-op and does
+        not trigger a recompute. This keeps external gating (an AppDaemon state
+        machine that calls this every cycle) from subverting the sample time.
+        """
+        if enabled == self.enabled:
+            return
         self.enabled = enabled
         await self.async_request_refresh()
