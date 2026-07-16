@@ -59,7 +59,8 @@ def _schema(defaults: dict[str, Any]) -> vol.Schema:
                 selector.EntitySelectorConfig(domain=["sensor", "input_number"])
             ),
             vol.Optional(
-                CONF_SETPOINT_ENTITY, default=defaults.get(CONF_SETPOINT_ENTITY)
+                CONF_SETPOINT_ENTITY,
+                description={"suggested_value": defaults.get(CONF_SETPOINT_ENTITY)},
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["sensor", "input_number"])
             ),
@@ -73,7 +74,8 @@ def _schema(defaults: dict[str, Any]) -> vol.Schema:
                 selector.EntitySelectorConfig(domain="number")
             ),
             vol.Optional(
-                CONF_OUTDOOR_ENTITY, default=defaults.get(CONF_OUTDOOR_ENTITY)
+                CONF_OUTDOOR_ENTITY,
+                description={"suggested_value": defaults.get(CONF_OUTDOOR_ENTITY)},
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["sensor", "input_number"])
             ),
