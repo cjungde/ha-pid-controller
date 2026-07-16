@@ -1,7 +1,7 @@
 {
   "domain": "pid_controller",
   "name": "PID Controller",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "codeowners": ["@cjungde"],
   "config_flow": true,
   "documentation": "https://github.com/cjungde/ha-pid-controller",

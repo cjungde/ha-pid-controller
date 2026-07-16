@@ -150,6 +150,19 @@ class PIDCoordinator(DataUpdateCoordinator):
             "written": written,
         }
 
+    async def async_reset(self) -> None:
+        """Reset integral and derivative history to zero.
+
+        Useful before a new heating season, when the integral may have wound to
+        a limit during a long gated/off period. Persists immediately and
+        recomputes so the output entity reflects the fresh state.
+        """
+        self.pid.reset()
+        self._last_ts = None
+        self._schedule_save()
+        _LOGGER.info("%s: PID state reset (integral=0)", self.name)
+        await self.async_request_refresh()
+
     async def async_set_enabled(self, enabled: bool) -> None:
         """Enable/disable the controller (used by external state machines).
 
