@@ -48,6 +48,15 @@ def test_i_only_converges_toward_setpoint():
     assert 0 < out <= 5.0
 
 
+def test_integral_is_per_hour():
+    # Gains are per-hour: ki=1.0 with a sustained error of 1 over exactly one
+    # hour raises the integral by ~1.0 (not ki*error*3600).
+    pid = PIDController(kp=0, ki=1.0, kd=0, output_min=-5, output_max=5)
+    out = pid.step(pv=9, setpoint=10, dt=3600)  # error=1, dt=1h
+    assert abs(pid.state.integral - 1.0) < 1e-9
+    assert abs(out - 1.0) < 1e-9
+
+
 def test_feed_forward_ke():
     pid = PIDController(kp=0, ki=0, kd=0, ke=0.2, output_min=-10, output_max=10)
     # Colder outdoor -> larger feed-forward toward setpoint.

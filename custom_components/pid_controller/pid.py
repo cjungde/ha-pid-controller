@@ -71,6 +71,11 @@ class PIDController:
             pv: Process variable (measured value), e.g. mean room temperature.
             setpoint: Target value.
             dt: Elapsed time since the previous step, in seconds. Must be > 0.
+                Internally converted to HOURS, so the gains are per-hour: with
+                ki=0.4 a sustained error of 1 raises the integral by ~0.4 per
+                hour. This keeps ki/kd human-meaningful for slow thermal systems
+                where dt is on the order of 900-3600 s (a raw seconds-based
+                integrator would need ki ~1e-4 and saturate instantly otherwise).
             outdoor: Optional outdoor temperature for the Ke feed-forward term.
 
         Returns:
@@ -79,6 +84,9 @@ class PIDController:
         if dt <= 0:
             # No time elapsed — return the last output unchanged.
             return self.state.output
+
+        # Convert to hours: ki/kd are per-hour gains (see docstring).
+        dt_h = dt / 3600.0
 
         error = setpoint - pv
         if self.invert:
@@ -91,7 +99,7 @@ class PIDController:
         if self.state.last_pv is None:
             d = 0.0
         else:
-            d_pv = (pv - self.state.last_pv) / dt
+            d_pv = (pv - self.state.last_pv) / dt_h
             d = -self.kd * d_pv
             if self.invert:
                 d = -d
@@ -105,7 +113,7 @@ class PIDController:
                 e = -e
 
         # Tentative integral (will be committed only if not saturating)
-        candidate_integral = self.state.integral + self.ki * error * dt
+        candidate_integral = self.state.integral + self.ki * error * dt_h
         # Clamp integral to output range so it can never wind up beyond authority
         candidate_integral = _clamp(candidate_integral, self.output_min, self.output_max)
 
