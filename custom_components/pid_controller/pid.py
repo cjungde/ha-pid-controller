@@ -82,7 +82,9 @@ class PIDController:
             The (clamped) controller output.
         """
         if dt <= 0:
-            # No time elapsed — return the last output unchanged.
+            # No time elapsed — return the last output unchanged. This is only
+            # correct if `output` survives a restart: the first call after one
+            # has dt == 0. The coordinator persists it for that reason.
             return self.state.output
 
         # Convert to hours: ki/kd are per-hour gains (see docstring).
