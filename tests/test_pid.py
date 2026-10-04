@@ -7,7 +7,7 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "custom_components" / "pid_controller")
 )
 
-from pid import PIDController  # noqa: E402
+from pid import PIDController, PIDState  # noqa: E402
 
 
 def test_output_clamped_to_limits():
@@ -55,6 +55,45 @@ def test_integral_is_per_hour():
     out = pid.step(pv=9, setpoint=10, dt=3600)  # error=1, dt=1h
     assert abs(pid.state.integral - 1.0) < 1e-9
     assert abs(out - 1.0) < 1e-9
+
+
+def test_dt_zero_returns_restored_output():
+    """Erster Schritt nach einem Neustart: dt == 0, also muss der
+    WIEDERHERGESTELLTE Ausgang zurueckkommen, nicht 0.
+
+    Regression zu Issue #1: Der Coordinator restaurierte integral, aber nicht
+    output. Der Fruehausstieg hier gab dann 0.0 zurueck und schrieb das eine
+    volle Sample-Periode lang in die Stellgroesse (bis zu einer Stunde).
+    """
+    pid = PIDController(
+        kp=0, ki=0.4, kd=0, output_min=-3, output_max=3,
+        state=PIDState(integral=2.5, output=2.5, last_pv=20.0),
+    )
+    assert pid.step(pv=20.0, setpoint=21.0, dt=0) == 2.5
+    # Integral darf dabei nicht angetastet werden.
+    assert pid.state.integral == 2.5
+
+
+def test_dt_zero_without_restored_output_is_the_bug():
+    """Gegenprobe: ohne restaurierten output kommt genau die 0, die der Fehler
+    war. Dokumentiert, warum der Coordinator output persistieren MUSS."""
+    pid = PIDController(
+        kp=0, ki=0.4, kd=0, output_min=-3, output_max=3,
+        state=PIDState(integral=2.5),  # output bleibt beim Default 0.0
+    )
+    assert pid.step(pv=20.0, setpoint=21.0, dt=0) == 0.0
+
+
+def test_second_step_after_restart_resumes_from_integral():
+    """Nach dem gehaltenen ersten Schritt rechnet der zweite normal weiter."""
+    pid = PIDController(
+        kp=0, ki=0.4, kd=0, output_min=-3, output_max=3,
+        state=PIDState(integral=2.5, output=2.5, last_pv=20.0),
+    )
+    pid.step(pv=20.0, setpoint=21.0, dt=0)          # gehalten
+    out = pid.step(pv=20.0, setpoint=21.0, dt=900)  # 15 min, Fehler 1 K
+    assert out > 2.5                                 # integriert weiter
+    assert abs(out - (2.5 + 0.4 * 0.25)) < 1e-9
 
 
 def test_feed_forward_ke():

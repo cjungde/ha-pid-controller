@@ -63,22 +63,34 @@ class PIDCoordinator(DataUpdateCoordinator):
         self._store: Store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
 
     async def async_load(self) -> None:
-        """Restore persisted controller state before the first refresh."""
+        """Restore persisted controller state before the first refresh.
+
+        `output` matters as much as `integral` here: on the first refresh after a
+        restart `_last_ts` is None, so dt == 0 and PIDController.step() returns
+        `state.output` unchanged (see pid.py). Without restoring it, that early
+        return handed back 0.0 and the coordinator wrote 0 to the output entity
+        for a full sample period -- 15 min for a 900 s controller, a whole hour
+        for a 3600 s one -- even though the integral had been restored correctly.
+        """
         data = await self._store.async_load()
         if not data:
             return
         self.pid.state.integral = float(data.get("integral", 0.0))
+        self.pid.state.output = float(data.get("output", 0.0))
         last_pv = data.get("last_pv")
         self.pid.state.last_pv = float(last_pv) if last_pv is not None else None
         self.enabled = bool(data.get("enabled", True))
         _LOGGER.debug(
-            "%s restored: integral=%.3f enabled=%s",
-            self.name, self.pid.state.integral, self.enabled,
+            "%s restored: integral=%.3f output=%.3f enabled=%s",
+            self.name, self.pid.state.integral, self.pid.state.output, self.enabled,
         )
 
     def _persisted_data(self) -> dict:
         return {
             "integral": self.pid.state.integral,
+            # Persisted so the dt == 0 early return in step() hands back the real
+            # last output after a restart instead of 0 -- see async_load().
+            "output": self.pid.state.output,
             "last_pv": self.pid.state.last_pv,
             "enabled": self.enabled,
         }
